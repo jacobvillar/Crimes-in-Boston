@@ -1,0 +1,122 @@
+---
+title: "Task3"
+author: "DATABAES"
+date: "5/13/2022"
+output: html_document
+---
+
+```{r}
+getwd() 
+setwd("D:/me/Documents/UPLB/2nd Semester A.Y. 2021-2022/STAT 183/TASK 3_ PREDICTIVE") 
+```
+
+
+```{r}
+#Libraries
+library(readxl)
+library(rpart)
+library(rpart.plot)
+library(party)
+library(caret)
+
+
+
+```
+
+
+```{r}
+data_train <- read_excel("D:/me/Documents/UPLB/2nd Semester A.Y. 2021-2022/STAT 183/TASK 3_ PREDICTIVE/task3_train.xlsx")
+head(data_train)
+
+data_test<- read_excel("D:/me/Documents/UPLB/2nd Semester A.Y. 2021-2022/STAT 183/TASK 3_ PREDICTIVE/task3_test.xlsx")
+```
+
+### Variable Factor
+
+```{r}
+data_train$season = as.factor(data_train$season)
+data_train$timeday = as.factor(data_train$timeday)
+data_train$dayweek = as.factor(data_train$dayweek)
+data_train$offense_type = as.factor(data_train$offense_type)
+```
+
+
+```{r}
+data_test$season = as.factor(data_test$season)
+data_test$timeday = as.factor(data_test$timeday)
+data_test$dayweek = as.factor(data_test$dayweek)
+data_test$offense_type = as.factor(data_test$offense_type)
+```
+
+
+```{r}
+prop.table(table(data_train$offense_type))
+prop.table(table(data_test$offense_type))
+```
+
+### Fitting the Model 
+
+## R-part
+```{r}
+fit <- rpart(offense_type~season+timeday+dayweek, data = data_train, method = 'class')
+rpart.plot(fit)
+```
+
+## C-Tree
+```{r}
+tmodel <- ctree(offense_type ~ season + timeday + dayweek,
+             data = data_train)
+plot(tmodel)
+
+```
+
+
+### Make a Prediction
+
+```{r}
+predict_crime <-predict(fit, data_test, type = 'class')
+
+table_mat <- table(data_test$offense_type, predict_crime)
+table_mat
+```
+
+### Measure Performance (R-Part)
+
+```{r}
+accuracy_Test <- sum(diag(table_mat)) / sum(table_mat)
+accuracy_Test
+```
+
+
+## Confusion Matrix of C-tree model 
+```{r}
+pred = predict(tmodel, data_test[,-2])
+
+cm = confusionMatrix(data_test$offense_type, pred)
+print(cm)
+```
+
+
+### Tuning the Model 
+
+```{r}
+accuracy_tune <- function(fit) {
+    predict_crime <- predict(fit, data_test, type = 'class')
+    table_mat <- table(data_test$offense_type, predict_crime)
+    accuracy_Test <- sum(diag(table_mat)) / sum(table_mat)
+    accuracy_Test
+}
+```
+
+
+```{r}
+control <- rpart.control(minsplit = 4,
+    minbucket = round(5 / 3),
+    maxdepth = 3,
+    cp = 0)
+tune_fit <- rpart(offense_type~season+timeday+dayweek, data = data_train, method = 'class', control = control)
+accuracy_tune(tune_fit)
+```
+
+
+
